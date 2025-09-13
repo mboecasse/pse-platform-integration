@@ -1,0 +1,85 @@
+{
+  "rules": [
+    {
+      "name": "pse-daily-content-sync",
+      "description": "Daily sync of content to keywords at 2 AM UTC",
+      "scheduleExpression": "cron(0 2 * * ? *)",
+      "targets": [
+        {
+          "arn": "arn:aws:lambda:eu-west-2:329599649426:function:pse-platform-data-bridge",
+          "input": {
+            "operation": "syncContentToKeywords",
+            "parameters": {
+              "dryRun": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "pse-hourly-metrics-collection",
+      "description": "Collect performance metrics every hour",
+      "scheduleExpression": "rate(1 hour)",
+      "targets": [
+        {
+          "arn": "arn:aws:lambda:eu-west-2:329599649426:function:pse-platform-data-bridge",
+          "input": {
+            "operation": "getPerformanceMetrics",
+            "parameters": {
+              "startDate": "DYNAMIC_DATE_MINUS_1",
+              "endDate": "DYNAMIC_DATE",
+              "entityType": "content"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "pse-daily-revenue-correlation",
+      "description": "Correlate revenue data daily at 3 AM UTC",
+      "scheduleExpression": "cron(0 3 * * ? *)",
+      "targets": [
+        {
+          "arn": "arn:aws:lambda:eu-west-2:329599649426:function:pse-platform-data-bridge",
+          "input": {
+            "operation": "correlateRevenueData",
+            "parameters": {
+              "date": "DYNAMIC_DATE_MINUS_1",
+              "source": "all"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "pse-weekly-high-value-finder",
+      "description": "Find high-value content every Monday at 4 AM UTC",
+      "scheduleExpression": "cron(0 4 ? * MON *)",
+      "targets": [
+        {
+          "arn": "arn:aws:lambda:eu-west-2:329599649426:function:pse-platform-data-bridge",
+          "input": {
+            "operation": "findHighValueContent",
+            "parameters": {
+              "minROI": 100,
+              "limit": 50
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "pse-daily-health-check",
+      "description": "Daily health check at midnight UTC",
+      "scheduleExpression": "cron(0 0 * * ? *)",
+      "targets": [
+        {
+          "arn": "arn:aws:lambda:eu-west-2:329599649426:function:pse-platform-data-bridge",
+          "input": {
+            "operation": "healthCheck"
+          }
+        }
+      ]
+    }
+  ]
+}
