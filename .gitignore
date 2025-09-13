@@ -1,0 +1,52 @@
+# Node modules
+node_modules/
+*/node_modules/
+**/node_modules/
+
+# Environment files
+.env
+.env.local
+.env.production
+*.env
+
+# AWS Lambda packages
+*.zip
+function.zip
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.backup
+*.bak
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# Build outputs
+dist/
+build/
+
+# AWS CLI artifacts
+.aws/
+
+# Secrets and credentials
+*credentials*
+*secret*
+*.pem
+*.key
