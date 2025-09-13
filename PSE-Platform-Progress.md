@@ -184,7 +184,7 @@ Read PSE-Platform-Progress.md and tell me:
 - Estimated PSE platform will add £30-50/month in Lambda costs
 **Blockers Encountered**:
 - None
-**Commit Hash**: [pending]
+**Commit Hash**: f61c8c8
 
 ---
 
