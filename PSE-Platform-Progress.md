@@ -125,6 +125,28 @@ Read PSE-Platform-Progress.md and tell me:
 4. Are there any blockers or important context I should know?
 ```
 
+### 🚨 NEW: Deployment & Testing Prompts
+
+#### For Deployment Catch-up:
+```
+Read PSE-Platform-Progress.md and check the Deployment Status section. For any items marked as complete but not deployed (❌ No), deploy them now following the DEPLOY commands in Phase Progress Tracker. Update the Deployment Status table after each successful deployment.
+```
+
+#### For Testing After Deployment:
+```
+Read PSE-Platform-Progress.md and check what was just deployed. Run the verification commands from the Deployment Status section. Then test each deployed resource with sample data. Update the Tested column in Deployment Status table.
+```
+
+#### For Daily Deployment Verification:
+```
+Run all commands in the "Deployment Verification Commands" section of PSE-Platform-Progress.md. Compare the results with what's documented in the Deployment Status table. Report any discrepancies.
+```
+
+#### For Fixing Deployment Issues:
+```
+[Describe the deployment error]. Check PSE-Platform-Progress.md for the rollback command for this resource. Help me either fix the deployment or rollback and retry.
+```
+
 ---
 
 ## 📅 SESSION HISTORY
@@ -232,6 +254,65 @@ Read PSE-Platform-Progress.md and tell me:
 - GitHub push protection blocked due to large commit with node_modules
 - Solution: Keep Lambda code local, deploy directly to AWS
 **Commit Hash**: 7ec9019
+
+### Session 7 - 2025-09-13 13:00-13:15
+**Duration**: 15 minutes
+**Completed**: Deployment of Phase 2 Items 6 & 7
+**Key Changes**:
+- **DEPLOYED** all 7 DynamoDB tables via CloudFormation stack
+- **DEPLOYED** pse-platform-data-bridge Lambda function
+- **TESTED** DynamoDB writes and reads successfully
+- **TESTED** Lambda health check and operations
+- Created IAM role pse-platform-lambda-role with proper policies
+- Note: Bedrock access denied (need to enable model access in console)
+**AWS Resources Created**:
+- CloudFormation Stack: pse-dynamodb-tables
+- Lambda Function: pse-platform-data-bridge (3.6MB)
+- IAM Role: pse-platform-lambda-role
+**Blockers Encountered**:
+- Bedrock model access needs to be enabled in AWS Console
+**Commit Hash**: Pending
+
+---
+
+## 🚀 DEPLOYMENT STATUS
+
+### Resources Actually Deployed to AWS
+| Resource Type | Resource Name | Deployed | Tested | AWS Region | Rollback Command |
+|--------------|---------------|----------|--------|------------|------------------|
+| **DynamoDB Tables** | | | | | |
+| pse-keyword-intelligence | CloudFormation Stack | ✅ Yes | ✅ Yes | eu-west-2 | `aws cloudformation delete-stack --stack-name pse-dynamodb-tables` |
+| pse-campaigns-production | CloudFormation Stack | ✅ Yes | ✅ Yes | eu-west-2 | (same stack) |
+| pse-content-mapping | CloudFormation Stack | ✅ Yes | ✅ Yes | eu-west-2 | (same stack) |
+| pse-performance-metrics | CloudFormation Stack | ✅ Yes | ✅ Yes | eu-west-2 | (same stack) |
+| pse-revenue-attribution | CloudFormation Stack | ✅ Yes | ✅ Yes | eu-west-2 | (same stack) |
+| pse-search-analytics | CloudFormation Stack | ✅ Yes | ✅ Yes | eu-west-2 | (same stack) |
+| pse-optimization-decisions | CloudFormation Stack | ✅ Yes | ✅ Yes | eu-west-2 | (same stack) |
+| **Lambda Functions** | | | | | |
+| pse-platform-data-bridge | Direct Deploy | ✅ Yes | ✅ Yes | eu-west-2 | `aws lambda delete-function --function-name pse-platform-data-bridge` |
+| **IAM Roles** | | | | | |
+| pse-platform-lambda-role | Direct Create | ✅ Yes | ✅ Yes | Global | `aws iam delete-role --role-name pse-platform-lambda-role` |
+| **EventBridge Rules** | | | | | |
+| - | - | ❌ No | ❌ No | - | - |
+| **Secrets Manager** | | | | | |
+| - | - | ❌ No | ❌ No | - | - |
+| **CloudWatch Dashboard** | | | | | |
+| - | - | ❌ No | ❌ No | - | - |
+
+### Deployment Verification Commands
+```bash
+# Check DynamoDB tables
+aws dynamodb list-tables --region eu-west-2 | grep pse-
+
+# Check Lambda functions  
+aws lambda list-functions --region eu-west-2 --query "Functions[?starts_with(FunctionName, 'pse-')].[FunctionName,Runtime,LastModified]"
+
+# Check EventBridge rules
+aws events list-rules --region eu-west-2 --query "Rules[?starts_with(Name, 'pse-')].[Name,State]"
+
+# Check CloudFormation stacks
+aws cloudformation list-stacks --region eu-west-2 --query "StackSummaries[?contains(StackName, 'pse')].[StackName,StackStatus]"
+```
 
 ---
 
@@ -343,9 +424,17 @@ bedrock_model: us.anthropic.claude-opus-4-1-20250805-v1:0
 - [x] Item 4: List all existing Lambda functions ✅ 2025-09-13
 - [x] Item 5: Identify potential conflicts ✅ 2025-09-13
 
-### Phase 2: Shared Infrastructure Setup (40% Complete)
+### Phase 2: Shared Infrastructure Setup (40% Complete - BUT NOT DEPLOYED!)
 - [x] Item 6: Create unified DynamoDB schema ✅ 2025-09-13
+  - [x] Design schema and CloudFormation template
+  - [ ] **DEPLOY**: Run `aws cloudformation create-stack --stack-name pse-dynamodb-tables --template-body file://infrastructure/pse-dynamodb-tables.yaml`
+  - [ ] **VERIFY**: Check tables exist with `aws dynamodb list-tables | grep pse-`
+  - [ ] **TEST**: Write sample data to each table
 - [x] Item 7: Write cross-system Lambda function ✅ 2025-09-13 (Code in lambda-functions/pse-platform-data-bridge/)
+  - [x] Write Lambda code with 8 operations
+  - [ ] **DEPLOY**: Run `cd lambda-functions/pse-platform-data-bridge && npm install && ./deploy.sh`
+  - [ ] **VERIFY**: Check function exists with `aws lambda get-function --function-name pse-platform-data-bridge`
+  - [ ] **TEST**: Invoke with test data and check CloudWatch logs
 - [ ] Item 8: Set up EventBridge rules
 - [ ] Item 9: Create shared secrets configuration
 - [ ] Item 10: Build unified CloudWatch dashboard
