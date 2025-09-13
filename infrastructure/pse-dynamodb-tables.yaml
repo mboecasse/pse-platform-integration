@@ -1,0 +1,427 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'PSE Platform DynamoDB Tables - Phase 2 Infrastructure Setup'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: 'production'
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: Environment name for resource naming
+
+Resources:
+  # 1. Keyword Intelligence Table
+  PSEKeywordIntelligenceTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'pse-keyword-intelligence-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: keyword_id
+          AttributeType: S
+        - AttributeName: service
+          AttributeType: S
+        - AttributeName: location
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: google_cpc
+          AttributeType: N
+      KeySchema:
+        - AttributeName: keyword_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: service-location-index
+          KeySchema:
+            - AttributeName: service
+              KeyType: HASH
+            - AttributeName: location
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: status-cpc-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: google_cpc
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Project
+          Value: PSE-Platform
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # 2. Campaigns Table
+  PSECampaignsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'pse-campaigns-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: campaign_id
+          AttributeType: S
+        - AttributeName: platform
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: start_date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: campaign_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: platform-status-index
+          KeySchema:
+            - AttributeName: platform
+              KeyType: HASH
+            - AttributeName: status
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: status-date-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: start_date
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Project
+          Value: PSE-Platform
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # 3. Performance Metrics Table (with TTL)
+  PSEPerformanceMetricsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'pse-performance-metrics-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: metric_date
+          AttributeType: S
+        - AttributeName: entity_id#metric_type
+          AttributeType: S
+      KeySchema:
+        - AttributeName: metric_date
+          KeyType: HASH
+        - AttributeName: entity_id#metric_type
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: entity-date-index
+          KeySchema:
+            - AttributeName: entity_id#metric_type
+              KeyType: HASH
+            - AttributeName: metric_date
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Project
+          Value: PSE-Platform
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: DataRetention
+          Value: 365days
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # 4. Revenue Attribution Table (with TTL)
+  PSERevenueAttributionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'pse-revenue-attribution-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: attribution_date
+          AttributeType: S
+        - AttributeName: attribution_id
+          AttributeType: S
+        - AttributeName: page_id
+          AttributeType: N
+        - AttributeName: revenue_source
+          AttributeType: S
+      KeySchema:
+        - AttributeName: attribution_date
+          KeyType: HASH
+        - AttributeName: attribution_id
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: page-date-index
+          KeySchema:
+            - AttributeName: page_id
+              KeyType: HASH
+            - AttributeName: attribution_date
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: source-date-index
+          KeySchema:
+            - AttributeName: revenue_source
+              KeyType: HASH
+            - AttributeName: attribution_date
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Project
+          Value: PSE-Platform
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: DataRetention
+          Value: 90days
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # 5. Optimization Decisions Table (with TTL)
+  PSEOptimizationDecisionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'pse-optimization-decisions-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: decision_date
+          AttributeType: S
+        - AttributeName: decision_id
+          AttributeType: S
+        - AttributeName: decision_type
+          AttributeType: S
+      KeySchema:
+        - AttributeName: decision_date
+          KeyType: HASH
+        - AttributeName: decision_id
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: type-date-index
+          KeySchema:
+            - AttributeName: decision_type
+              KeyType: HASH
+            - AttributeName: decision_date
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Project
+          Value: PSE-Platform
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: DataRetention
+          Value: 180days
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # 6. Content Mapping Table
+  PSEContentMappingTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'pse-content-mapping-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: content_id
+          AttributeType: S
+        - AttributeName: mapping_type
+          AttributeType: S
+      KeySchema:
+        - AttributeName: content_id
+          KeyType: HASH
+        - AttributeName: mapping_type
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: type-content-index
+          KeySchema:
+            - AttributeName: mapping_type
+              KeyType: HASH
+            - AttributeName: content_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Project
+          Value: PSE-Platform
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # 7. Search Analytics Table (with TTL)
+  PSESearchAnalyticsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'pse-search-analytics-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: search_date#page_id
+          AttributeType: S
+        - AttributeName: search_id
+          AttributeType: S
+        - AttributeName: search_query
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: search_date#page_id
+          KeyType: HASH
+        - AttributeName: search_id
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: query-date-index
+          KeySchema:
+            - AttributeName: search_query
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Project
+          Value: PSE-Platform
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: DataRetention
+          Value: 30days
+        - Key: ManagedBy
+          Value: CloudFormation
+
+Outputs:
+  StackName:
+    Description: Name of this CloudFormation stack
+    Value: !Ref AWS::StackName
+
+  Region:
+    Description: AWS Region where tables are created
+    Value: !Ref AWS::Region
+
+  KeywordIntelligenceTableName:
+    Description: Name of the Keyword Intelligence table
+    Value: !Ref PSEKeywordIntelligenceTable
+    Export:
+      Name: !Sub '${AWS::StackName}-keyword-intelligence-table'
+
+  KeywordIntelligenceTableArn:
+    Description: ARN of the Keyword Intelligence table
+    Value: !GetAtt PSEKeywordIntelligenceTable.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-keyword-intelligence-table-arn'
+
+  CampaignsTableName:
+    Description: Name of the Campaigns table
+    Value: !Ref PSECampaignsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-campaigns-table'
+
+  CampaignsTableArn:
+    Description: ARN of the Campaigns table
+    Value: !GetAtt PSECampaignsTable.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-campaigns-table-arn'
+
+  PerformanceMetricsTableName:
+    Description: Name of the Performance Metrics table
+    Value: !Ref PSEPerformanceMetricsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-performance-metrics-table'
+
+  PerformanceMetricsTableArn:
+    Description: ARN of the Performance Metrics table
+    Value: !GetAtt PSEPerformanceMetricsTable.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-performance-metrics-table-arn'
+
+  RevenueAttributionTableName:
+    Description: Name of the Revenue Attribution table
+    Value: !Ref PSERevenueAttributionTable
+    Export:
+      Name: !Sub '${AWS::StackName}-revenue-attribution-table'
+
+  RevenueAttributionTableArn:
+    Description: ARN of the Revenue Attribution table
+    Value: !GetAtt PSERevenueAttributionTable.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-revenue-attribution-table-arn'
+
+  OptimizationDecisionsTableName:
+    Description: Name of the Optimization Decisions table
+    Value: !Ref PSEOptimizationDecisionsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-optimization-decisions-table'
+
+  OptimizationDecisionsTableArn:
+    Description: ARN of the Optimization Decisions table
+    Value: !GetAtt PSEOptimizationDecisionsTable.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-optimization-decisions-table-arn'
+
+  ContentMappingTableName:
+    Description: Name of the Content Mapping table
+    Value: !Ref PSEContentMappingTable
+    Export:
+      Name: !Sub '${AWS::StackName}-content-mapping-table'
+
+  ContentMappingTableArn:
+    Description: ARN of the Content Mapping table
+    Value: !GetAtt PSEContentMappingTable.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-content-mapping-table-arn'
+
+  SearchAnalyticsTableName:
+    Description: Name of the Search Analytics table
+    Value: !Ref PSESearchAnalyticsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-search-analytics-table'
+
+  SearchAnalyticsTableArn:
+    Description: ARN of the Search Analytics table
+    Value: !GetAtt PSESearchAnalyticsTable.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-search-analytics-table-arn'
+
+  TotalTablesCreated:
+    Description: Total number of DynamoDB tables created
+    Value: 7
+
+  EstimatedMonthlyCost:
+    Description: Estimated monthly cost for DynamoDB tables
+    Value: £5-10
